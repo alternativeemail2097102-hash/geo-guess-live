@@ -10,59 +10,140 @@ const ctx = canvas.getContext("2d");
 let worldFeatures = null;   // populated once the world map data finishes loading
 let latestState = null;     // last state received from the server
 let currentMode = "live";
+let mapReady = false;       // true once a shape has actually been painted at least once
 
-// ----------------------------------------------------------------------------
-// Load the world map shapes once. Robust against slow/failed network:
-// shows a spinner while loading, an error if it fails, and — critically —
-// redraws the current round's shape the moment loading finishes, even if
-// no new game event has happened since.
-// ----------------------------------------------------------------------------
-async function loadWorldAtlas() {
+function setLoaderText(text) {
+  const t = el("mapLoaderText");
+  if (t) t.textContent = text;
+}
+function showMapError(message) {
+  el("mapLoader").classList.remove("hidden");
+  el("mapSpinner").style.display = "none";
+  setLoaderText(message);
+  el("mapRetryBtn").style.display = "inline-block";
+}
+function showMapLoading(message) {
+  el("mapLoader").classList.remove("hidden");
+  el("mapSpinner").style.display = "block";
+  el("mapRetryBtn").style.display = "none";
+  setLoaderText(message);
+}
+function hideMapLoader() {
+  el("mapLoader").classList.add("hidden");
+}
+
+// Loads a <script> tag on demand and resolves once it's actually executed.
+// Used as a fallback if the CDN <script> tags in index.html failed silently
+// (can happen on some mobile carrier networks / privacy browsers).
+function loadScriptOnce(src) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = src;
+    s.onload = resolve;
+    s.onerror = () => reject(new Error("Failed to load " + src));
+    document.head.appendChild(s);
+  });
+}
+
+async function ensureMapLibraries() {
+  if (typeof d3 !== "undefined" && typeof topojson !== "undefined") return true;
+  setLoaderText("Map library didn't load — retrying…");
   try {
-    const res = await fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json");
-    if (!res.ok) throw new Error("Network response was not OK (" + res.status + ")");
-    const topo = await res.json();
-    worldFeatures = topojson.feature(topo, topo.objects.countries).features;
-    el("mapLoader").classList.add("hidden");
-    // Redraw immediately using whatever round is currently active,
-    // regardless of when this finished loading relative to game events.
-    if (latestState) drawCountrySilhouette(latestState.targetIso);
+    if (typeof d3 === "undefined") {
+      await loadScriptOnce("https://cdn.jsdelivr.net/npm/d3-geo@3");
+    }
+    if (typeof topojson === "undefined") {
+      await loadScriptOnce("https://cdn.jsdelivr.net/npm/topojson-client@3");
+    }
+    return typeof d3 !== "undefined" && typeof topojson !== "undefined";
   } catch (err) {
-    console.error("Failed to load world map data:", err);
-    const loader = el("mapLoader");
-    loader.innerHTML = `<span style="color:var(--danger); text-align:center; padding:0 20px;">
-      ⚠️ Couldn't load map data.<br/>Check your internet connection, then reload the page.
-    </span>`;
+    console.error(err);
+    return false;
   }
 }
 
+// ----------------------------------------------------------------------------
+// Load the world map shapes. Defends against every failure mode we know of:
+// slow network, failed fetch, failed CDN script load, and bad/missing data —
+// each with a visible message and a manual Retry button, so it can never
+// again fail completely silently.
+// ----------------------------------------------------------------------------
+async function loadWorldAtlas() {
+  showMapLoading("Loading world map…");
+  try {
+    const librariesOk = await ensureMapLibraries();
+    if (!librariesOk) {
+      showMapError("⚠️ Map library failed to load. Check your connection, then retry.");
+      return;
+    }
+    const sources = [
+      "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json",
+      "https://unpkg.com/world-atlas@2/countries-110m.json",
+    ];
+    let topo = null, lastErr = null;
+    for (const url of sources) {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        topo = await res.json();
+        break;
+      } catch (err) { lastErr = err; }
+    }
+    if (!topo) throw lastErr || new Error("No map source responded");
+
+    worldFeatures = topojson.feature(topo, topo.objects.countries).features;
+    hideMapLoader();
+    // Redraw immediately using whatever round is currently active,
+    // regardless of when this finished loading relative to game events.
+    if (latestState) drawCountrySilhouette(latestState.targetIso);
+    // Safety net: if nothing actually painted a few seconds later
+    // (e.g. the round's iso didn't match anything), surface a retry option
+    // instead of leaving a permanently blank box.
+    setTimeout(() => {
+      if (!mapReady) showMapError("⚠️ Map didn't render. Tap Retry, or try New Round.");
+    }, 4000);
+  } catch (err) {
+    console.error("Failed to load world map data:", err);
+    showMapError("⚠️ Couldn't load map data. Check your connection, then retry.");
+  }
+}
+el("mapRetryBtn").addEventListener("click", loadWorldAtlas);
+
 function drawCountrySilhouette(iso) {
   if (!worldFeatures || !iso) return;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  const feature = worldFeatures.find(
-    (f) => String(f.id).padStart(3, "0") === String(iso).padStart(3, "0")
-  );
-  if (!feature) {
-    ctx.fillStyle = "#93a2b8";
-    ctx.font = "18px Inter, sans-serif";
-    ctx.fillText("Map shape unavailable for this round — try New Round.", 20, 40);
-    return;
+  try {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const feature = worldFeatures.find(
+      (f) => String(f.id).padStart(3, "0") === String(iso).padStart(3, "0")
+    );
+    if (!feature) {
+      ctx.fillStyle = "#93a2b8";
+      ctx.font = "18px Inter, sans-serif";
+      ctx.fillText("Map shape unavailable for this round — try New Round.", 20, 40);
+      mapReady = true;
+      return;
+    }
+    const projection = d3.geoMercator().fitExtent(
+      [[30, 30], [canvas.width - 30, canvas.height - 30]],
+      feature
+    );
+    const path = d3.geoPath(projection, ctx);
+    ctx.beginPath();
+    path(feature);
+    const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+    gradient.addColorStop(0, "#2dd4bf");
+    gradient.addColorStop(1, "#0ea5e9");
+    ctx.fillStyle = gradient;
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "#06121c";
+    ctx.stroke();
+    mapReady = true;
+    hideMapLoader();
+  } catch (err) {
+    console.error("Error drawing country silhouette:", err);
+    showMapError("⚠️ Map rendering error. Tap Retry.");
   }
-  const projection = d3.geoMercator().fitExtent(
-    [[30, 30], [canvas.width - 30, canvas.height - 30]],
-    feature
-  );
-  const path = d3.geoPath(projection, ctx);
-  ctx.beginPath();
-  path(feature);
-  const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-  gradient.addColorStop(0, "#2dd4bf");
-  gradient.addColorStop(1, "#0ea5e9");
-  ctx.fillStyle = gradient;
-  ctx.fill();
-  ctx.lineWidth = 2;
-  ctx.strokeStyle = "#06121c";
-  ctx.stroke();
 }
 
 // ----------------------------------------------------------------------------

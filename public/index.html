@@ -46,8 +46,9 @@
         <div class="map-wrap">
           <canvas id="mapCanvas" width="600" height="480"></canvas>
           <div id="mapLoader" class="map-loader">
-            <div class="spinner"></div>
-            <span>Loading world map…</span>
+            <div class="spinner" id="mapSpinner"></div>
+            <span id="mapLoaderText">Loading world map…</span>
+            <button id="mapRetryBtn" class="primary-btn" style="display:none; width:auto; padding:9px 18px;">🔄 Retry</button>
           </div>
           <div id="winFlash" class="win-flash"></div>
         </div>
