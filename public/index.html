@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+<title>GeoGuess LIVE — Guess the Country</title>
+<link rel="manifest" href="manifest.json" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <div id="app">
+
+    <!-- ===== Top bar ===== -->
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-globe">🌍</span>
+        <span class="brand-name">GeoGuess <em>LIVE</em></span>
+      </div>
+
+      <div class="mode-switch" id="modeSwitch">
+        <button class="mode-btn active" data-mode="live">🔴 Live</button>
+        <button class="mode-btn" data-mode="test">🧪 Test</button>
+        <button class="mode-btn" data-mode="offline">🎮 Offline</button>
+      </div>
+
+      <div class="top-actions">
+        <span id="roundNumber" class="round-pill">Round 1</span>
+        <span id="connStatus" class="pill pill-connecting">Connecting…</span>
+        <button id="howToBtn" class="icon-btn" aria-label="How to play">❓</button>
+      </div>
+    </header>
+
+    <main class="layout">
+
+      <!-- ===== Center: the country silhouette ===== -->
+      <section class="stage">
+        <div class="stage-top">
+          <div id="statusMessage" class="status-message">Loading world map…</div>
+          <div id="guessesLeft" class="guesses-left">6 guesses left</div>
+        </div>
+
+        <div class="map-wrap">
+          <canvas id="mapCanvas" width="600" height="480"></canvas>
+          <div id="mapLoader" class="map-loader">
+            <div class="spinner"></div>
+            <span>Loading world map…</span>
+          </div>
+          <div id="winFlash" class="win-flash"></div>
+        </div>
+
+        <!-- Offline mode: big obvious guess box lives right under the map -->
+        <div id="offlineGuessBar" class="offline-guess-bar">
+          <input id="offlineInput" type="text" placeholder="Type your guess here…" autocomplete="off" />
+          <button id="offlineSendBtn">Guess</button>
+        </div>
+      </section>
+
+      <!-- ===== Right/below: guess feed ===== -->
+      <section class="panel guess-panel">
+        <h2>📝 Guesses <span id="guessCount" class="count-badge">0</span></h2>
+        <div id="guessList" class="guess-list"></div>
+        <div id="guessEmpty" class="empty-hint">No guesses yet — be the first!</div>
+      </section>
+
+      <!-- ===== Leaderboard ===== -->
+      <section class="panel leaderboard-panel">
+        <h2>🏆 Top 10</h2>
+        <ol id="leaderboardList" class="leaderboard-list"></ol>
+        <div id="leaderboardEmpty" class="empty-hint">Scores will appear here.</div>
+      </section>
+
+      <!-- ===== Live comment / activity feed ===== -->
+      <section class="panel chat-panel">
+        <h2>💬 Activity</h2>
+        <div id="chatFeed" class="chat-feed"></div>
+      </section>
+
+    </main>
+
+    <!-- ===== Host control bar ===== -->
+    <footer class="hostbar" id="hostBar">
+      <input id="hostInput" type="text" placeholder="Type as host (guess, or say something)…" autocomplete="off" />
+      <button id="hostSendBtn">Send</button>
+      <button id="newRoundBtn" class="host-btn">🔄 New Round</button>
+      <button id="revealBtn" class="host-btn">👁 Reveal</button>
+      <select id="difficultySelect" class="host-btn">
+        <option value="all">All Countries</option>
+        <option value="easy">Well-Known Only</option>
+      </select>
+    </footer>
+
+  </div>
+
+  <!-- ===== How to Play modal ===== -->
+  <div id="howToModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>🌍 How to Play GeoGuess LIVE</h2>
+        <button id="closeHowTo" class="icon-btn">✕</button>
+      </div>
+      <ul class="howto-list">
+        <li><strong>Look at the shape</strong> on screen — it's the silhouette of a real country.</li>
+        <li><strong>Type the country's name</strong> in the TikTok comments (e.g. <code>France</code>, <code>japan</code>) to guess.</li>
+        <li>Each guess shows how <strong>close</strong> you were: a % score, distance in km, and an arrow pointing toward the real country.</li>
+        <li>You get <strong>one guess per round</strong> — make it count!</li>
+        <li>First correct guess <strong>wins the round</strong> and earns points. Everyone climbs the <strong>Top 10 leaderboard</strong> as they play.</li>
+        <li>After 6 wrong guesses with no winner, the answer is revealed and a new round starts automatically.</li>
+      </ul>
+      <button id="gotItBtn" class="primary-btn">Got it, let's play!</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4/dist/socket.io.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3-geo@3"></script>
+  <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
+  <script src="app.js"></script>
+</body>
+</html>
