@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: geo-guess-live
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: TIKTOK_USERNAME
+        sync: false

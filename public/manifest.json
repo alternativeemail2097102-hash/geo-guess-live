@@ -1,0 +1,9 @@
+{
+  "name": "GeoGuess LIVE",
+  "short_name": "GeoGuess",
+  "start_url": "/",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#0b1220",
+  "theme_color": "#0b1220"
+}
