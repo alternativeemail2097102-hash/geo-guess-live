@@ -1,18 +1,18 @@
 :root {
-  --bg-deep: #070c17;
-  --bg-panel: #101a2e;
-  --bg-panel-2: #0c1526;
-  --accent: #2dd4bf;
-  --accent-2: #22c1dc;
-  --accent-warm: #fbbf24;
-  --danger: #f87171;
-  --success: #34d399;
-  --text-main: #f3f6fb;
-  --text-dim: #8fa0bc;
-  --border: #1c2842;
+  --bg-deep: #05070d;
+  --bg-panel: #10141f;
+  --bg-panel-2: #0a0d16;
+  --accent: #1fb8a8;       /* deep teal — mature, not neon */
+  --accent-2: #c9a24b;     /* muted brass/gold */
+  --accent-warm: #d9a441;
+  --danger: #e0685f;
+  --success: #3fb88a;
+  --text-main: #eef1f6;
+  --text-dim: #7c8aa3;
+  --border: #202638;
   --radius: 18px;
   --radius-sm: 12px;
-  --shadow: 0 10px 30px rgba(0,0,0,0.35);
+  --shadow: 0 14px 34px rgba(0,0,0,0.45);
   --font-head: 'Poppins', sans-serif;
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
@@ -24,9 +24,9 @@ html, body {
   padding: 0;
   height: 100%;
   background:
-    radial-gradient(circle at 15% 0%, rgba(45,212,191,0.08), transparent 45%),
-    radial-gradient(circle at 100% 100%, rgba(34,193,220,0.10), transparent 50%),
-    linear-gradient(165deg, #070c17 0%, #0b1626 55%, #070c17 100%);
+    radial-gradient(circle at 12% -5%, rgba(31,184,168,0.07), transparent 42%),
+    radial-gradient(circle at 100% 105%, rgba(201,162,75,0.06), transparent 48%),
+    linear-gradient(170deg, #05070d 0%, #0a0e18 55%, #05070d 100%);
   color: var(--text-main);
   font-family: var(--font-body);
   overflow: hidden;
@@ -54,7 +54,7 @@ button, select, input { font-family: var(--font-body); }
   flex-wrap: wrap;
 }
 .brand { display: flex; align-items: center; gap: 8px; font-family: var(--font-head); }
-.brand-globe { font-size: 22px; filter: drop-shadow(0 0 8px rgba(45,212,191,0.5)); }
+.brand-globe { font-size: 22px; filter: drop-shadow(0 0 8px rgba(31,184,168,0.45)); }
 .brand-name { font-weight: 800; font-size: 18px; letter-spacing: 0.2px; }
 .brand-name em { color: var(--accent); font-style: normal; }
 
@@ -82,7 +82,7 @@ button, select, input { font-family: var(--font-body); }
 .mode-btn.active {
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
   color: #06121c;
-  box-shadow: 0 4px 14px rgba(45,212,191,0.35);
+  box-shadow: 0 4px 14px rgba(31,184,168,0.30);
 }
 
 .top-actions { display: flex; align-items: center; gap: 8px; }
@@ -187,7 +187,7 @@ button, select, input { font-family: var(--font-body); }
   width: 100%;
   height: 100%;
   object-fit: contain;
-  filter: drop-shadow(0 6px 18px rgba(45,212,191,0.15));
+  filter: drop-shadow(0 6px 18px rgba(31,184,168,0.18));
 }
 .map-loader {
   position: absolute;
@@ -215,7 +215,7 @@ button, select, input { font-family: var(--font-body); }
 .win-flash {
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle, rgba(52,211,153,0.35), transparent 65%);
+  background: radial-gradient(circle, rgba(63,184,138,0.30), transparent 65%);
   opacity: 0;
   pointer-events: none;
 }
@@ -301,7 +301,7 @@ button, select, input { font-family: var(--font-body); }
   animation: slideIn 0.3s ease-out;
 }
 .guess-row.correct {
-  background: linear-gradient(90deg, rgba(52,211,153,0.18), #0d1626);
+  background: linear-gradient(90deg, rgba(63,184,138,0.16), #0d1626);
   border-color: var(--success);
 }
 .guess-rank {
@@ -341,7 +341,7 @@ button, select, input { font-family: var(--font-body); }
 .leaderboard-list li .rank { font-weight: 800; width: 20px; }
 .leaderboard-list li .name { flex: 1; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .leaderboard-list li .pts { font-weight: 800; color: var(--accent); }
-.leaderboard-list li:nth-child(1) { background: linear-gradient(90deg, rgba(251,191,36,0.18), #0d1626); border-color: var(--accent-warm); }
+.leaderboard-list li:nth-child(1) { background: linear-gradient(90deg, rgba(201,162,75,0.20), #0d1626); border-color: var(--accent-warm); }
 .leaderboard-list li:nth-child(2) { background: linear-gradient(90deg, rgba(209,213,219,0.12), #0d1626); }
 .leaderboard-list li:nth-child(3) { background: linear-gradient(90deg, rgba(192,139,92,0.15), #0d1626); }
 

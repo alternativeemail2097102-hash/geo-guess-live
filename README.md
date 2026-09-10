@@ -17,6 +17,31 @@ You will never write or edit code. You're just uploading files and clicking butt
 
 ---
 
+## ⚠️ Already deployed and updating? Read this first
+
+If you already have this project on GitHub/Render from before, you don't need
+to start over. For **each file** in this new version, open that same-named
+file in your GitHub repo → click the pencil (✏️) **Edit** icon → select all
+existing text and delete it → paste in the new content from this package →
+**Commit changes**. Once committed, Render redeploys automatically within a
+minute or two (watch the **Logs** tab on your Render dashboard to confirm it
+finishes with no errors).
+
+**Latest update (the real map fix)** — changed files: `public/app.js`,
+`public/styles.css`. Here's what was actually going on: the game was
+declaring "map failed" after a fixed 4-second timer, even though nothing
+was actually broken — it just hadn't finished connecting yet. Render's free
+hosting tier can genuinely take up to a minute to fully wake up on first
+load, especially over mobile data, and the game was mistaking "still
+connecting" for "broken." It now tracks the *real* state of each piece (map
+data downloaded? game server responding?) and only ever shows an error once
+both are confirmed ready and drawing still doesn't happen — everything
+before that shows an honest "still connecting" message instead of a scary
+false alarm. I also refreshed the color palette to a more refined
+teal-and-brass look.
+
+---
+
 ## PART 2 — Upload the code to GitHub
 
 1. Go to https://github.com and log in.
@@ -67,6 +92,18 @@ That link is your game screen. ✅
 8. Buttons at the bottom: **🔄 New Round** (skip to a new country anytime), **👁 Reveal** (show the answer), and the **difficulty dropdown** (All Countries vs. Well-Known Only).
 
 That's it — everything else (reading comments, scoring, hints, leaderboard, auto new rounds) happens automatically.
+
+### The 3 modes (top of the screen)
+
+- **🔴 Live** — the real mode for streaming. Reads real TikTok comments as guesses.
+- **🧪 Test** — use this before going live, or right after you update the game. Viewer comments are ignored so nothing messes with your leaderboard; only your own host box counts, so you can safely check that everything works.
+- **🎮 Offline** — solo practice mode. The host bar disappears and a big **"Type your guess here"** box appears right under the map so you can just play by yourself, no stream needed.
+
+Switching modes is instant and doesn't require restarting anything — just tap the pill at the top.
+
+### If a guess doesn't do anything
+
+You'll now always get a small pop-up (a "toast") confirming what happened — correct, wrong-but-here's-a-hint, "didn't recognize that as a country," or "already guessed this round." If you ever see nothing happen with no pop-up either, that's the one case worth reporting back to me — it means something deeper broke, not just an unrecognized word.
 
 ---
 

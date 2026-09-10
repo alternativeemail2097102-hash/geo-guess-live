@@ -11,6 +11,10 @@ let worldFeatures = null;   // populated once the world map data finishes loadin
 let latestState = null;     // last state received from the server
 let currentMode = "live";
 let mapReady = false;       // true once a shape has actually been painted at least once
+let atlasReady = false;     // true once world map shapes are downloaded & parsed
+let firstStateReceived = false; // true once we've heard from the game server at least once
+let watchdogTicks = 0;
+const WATCHDOG_MAX_TICKS = 20; // ~40 seconds of patience before calling it a real failure
 
 function setLoaderText(text) {
   const t = el("mapLoaderText");
@@ -31,6 +35,39 @@ function showMapLoading(message) {
 function hideMapLoader() {
   el("mapLoader").classList.add("hidden");
 }
+
+// This runs repeatedly (not just once) so it always reflects reality instead
+// of guessing based on a fixed timer. It only ever declares a real failure
+// once both pieces it needs (map shapes + a game state) are confirmed ready
+// AND drawing still didn't happen — everything short of that is shown as
+// normal, honest progress (never a scary error) since Render's free hosting
+// can genuinely take up to a minute to wake up on the very first load.
+function watchdogTick() {
+  if (mapReady) return; // done, nothing left to check
+  watchdogTicks++;
+
+  if (!atlasReady) {
+    // loadWorldAtlas() itself will report its own errors; nothing to do here
+    // beyond waiting, unless it's taking implausibly long.
+    if (watchdogTicks > WATCHDOG_MAX_TICKS) {
+      showMapError("⚠️ Map data is taking too long. Check your connection, then retry.");
+    }
+    return;
+  }
+  if (!firstStateReceived) {
+    showMapLoading("Connecting to your game… (first load can take up to a minute)");
+    if (watchdogTicks > WATCHDOG_MAX_TICKS) {
+      showMapError("⚠️ Still couldn't reach the game server. Check your connection, then retry.");
+    }
+    return;
+  }
+  // Both pieces are ready — try to draw right now.
+  if (latestState) drawCountrySilhouette(latestState.targetIso);
+  if (!mapReady && watchdogTicks > 4) {
+    showMapError("⚠️ Map didn't render. Tap Retry, or try New Round.");
+  }
+}
+setInterval(watchdogTick, 2000);
 
 // Loads a <script> tag on demand and resolves once it's actually executed.
 // Used as a fallback if the CDN <script> tags in index.html failed silently
@@ -65,10 +102,10 @@ async function ensureMapLibraries() {
 // ----------------------------------------------------------------------------
 // Load the world map shapes. Defends against every failure mode we know of:
 // slow network, failed fetch, failed CDN script load, and bad/missing data —
-// each with a visible message and a manual Retry button, so it can never
-// again fail completely silently.
+// each with a visible message and a manual Retry button.
 // ----------------------------------------------------------------------------
 async function loadWorldAtlas() {
+  watchdogTicks = 0;
   showMapLoading("Loading world map…");
   try {
     const librariesOk = await ensureMapLibraries();
@@ -92,22 +129,23 @@ async function loadWorldAtlas() {
     if (!topo) throw lastErr || new Error("No map source responded");
 
     worldFeatures = topojson.feature(topo, topo.objects.countries).features;
-    hideMapLoader();
-    // Redraw immediately using whatever round is currently active,
-    // regardless of when this finished loading relative to game events.
+    atlasReady = true;
+    watchdogTicks = 0;
+    // Try to draw immediately — the watchdog will keep trying every 2s
+    // regardless, so this isn't the only chance.
     if (latestState) drawCountrySilhouette(latestState.targetIso);
-    // Safety net: if nothing actually painted a few seconds later
-    // (e.g. the round's iso didn't match anything), surface a retry option
-    // instead of leaving a permanently blank box.
-    setTimeout(() => {
-      if (!mapReady) showMapError("⚠️ Map didn't render. Tap Retry, or try New Round.");
-    }, 4000);
+    else watchdogTick();
   } catch (err) {
     console.error("Failed to load world map data:", err);
     showMapError("⚠️ Couldn't load map data. Check your connection, then retry.");
   }
 }
-el("mapRetryBtn").addEventListener("click", loadWorldAtlas);
+el("mapRetryBtn").addEventListener("click", () => {
+  watchdogTicks = 0;
+  if (!atlasReady) loadWorldAtlas();
+  else if (latestState) drawCountrySilhouette(latestState.targetIso);
+  else showMapLoading("Connecting to your game…");
+});
 
 function drawCountrySilhouette(iso) {
   if (!worldFeatures || !iso) return;
@@ -121,6 +159,7 @@ function drawCountrySilhouette(iso) {
       ctx.font = "18px Inter, sans-serif";
       ctx.fillText("Map shape unavailable for this round — try New Round.", 20, 40);
       mapReady = true;
+      hideMapLoader();
       return;
     }
     const projection = d3.geoMercator().fitExtent(
@@ -131,8 +170,8 @@ function drawCountrySilhouette(iso) {
     ctx.beginPath();
     path(feature);
     const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-    gradient.addColorStop(0, "#2dd4bf");
-    gradient.addColorStop(1, "#0ea5e9");
+    gradient.addColorStop(0, "#d4af6a");
+    gradient.addColorStop(1, "#2dd4bf");
     ctx.fillStyle = gradient;
     ctx.fill();
     ctx.lineWidth = 2;
@@ -170,6 +209,7 @@ function renderState(state) {
   if (!state) return;
   const prevStatus = latestState ? latestState.status : null;
   latestState = state;
+  firstStateReceived = true;
 
   el("roundNumber").textContent = `Round ${state.round}`;
   el("guessesLeft").textContent = `${state.guessesLeft} guess${state.guessesLeft === 1 ? "" : "es"} left`;
@@ -190,7 +230,7 @@ function renderState(state) {
     status.style.color = "var(--danger)";
   }
 
-  if (worldFeatures) drawCountrySilhouette(state.targetIso);
+  if (atlasReady) drawCountrySilhouette(state.targetIso);
 
   // Guess list — newest guesses appear at the TOP; the CSS list uses
   // column-reverse so new rows visually push older ones down smoothly.
